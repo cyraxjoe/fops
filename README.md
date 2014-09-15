@@ -1,11 +1,11 @@
 fops
 ====
 
-Another Apache FOP Web Server
+Apache FOP Server
 
 ## Installation
 
-Download from http://example.com/FIXME.
+Download from http://github.com/cyraxjoe/fops
 
 ## Usage
 
