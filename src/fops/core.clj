@@ -4,7 +4,7 @@
   (:require [fops.web :as web])
   (:gen-class))
 
-(def default-port "8080")
+(def default-port "3000")
 
 (defn -main
   "Entry point of the stand alone mode of fops."
