@@ -10,16 +10,10 @@
    :headers {"Content-Type" "text/html"}
    :body page/index})
 
-(defn gen-pdf [request]
-  {:status 200
-   :headers {"Content-Type" (:pdf document/FORMATS)}
-   :body (document/stream-pdf (:body request))})
-
 (defn gen-doc [request ext mime]
   {:status 200
    :headers {"Content-Type" mime}
    :body (document/stream-doc (:body request) ext)})
-
 
 (defn app [request]
   (let [uri (:uri request)
