@@ -1,20 +1,33 @@
 (ns fops.web
-  (:require [fops.document :as document])
+  (:require [fops.document :as document]
+            [fops.web.page :as page]
+            [ring.util.response :as response])
   (:use clojure.pprint))
+
 
 (defn index [request]
   {:status 200
    :headers {"Content-Type" "text/html"}
-   :body "Hello Worlds!"})
+   :body page/index})
 
 (defn gen-pdf [request]
   {:status 200
-   :headers {"Content-Type" "text/pdf"}
+   :headers {"Content-Type" (:pdf document/FORMATS)}
    :body (document/stream-pdf (:body request))})
+
+(defn gen-doc [request ext mime]
+  {:status 200
+   :headers {"Content-Type" mime}
+   :body (document/stream-doc (:body request) ext)})
+
 
 (defn app [request]
   (let [uri (:uri request)
         method (:request-method request)]
     (condp = method
       :get (cond (= uri "/") (index request))
-      :post (cond (= uri "/pdf") (gen-pdf request)))))
+      :post (let [ext (clojure.string/replace uri "/" "")
+                  mime ((keyword ext) document/FORMATS)]
+              (if mime
+                (gen-doc request ext mime)
+                (response/not-found (format "Unsupported format %s" ext)))))))
