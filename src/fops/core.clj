@@ -6,6 +6,7 @@
   (:require [clojure.string :as string])
   (:require [com.brainbot.iniconfig :as iniconfig])
   (:require [clojure.tools.cli :refer [parse-opts]])
+  (:require [ring.middleware.basic-authentication :refer [wrap-basic-authentication]])
   (:gen-class))
 
 
@@ -22,10 +23,23 @@
 (def banner (str "FOPS Server v" (System/getProperty "fops.version")))
 (def section-name "fops")
 
+(defmacro authenticated?
+  [refname refpasswd]
+  `(fn [name# passwd#]
+     (and (= name# ~refname)
+          (= passwd# ~refpasswd))))
+
+(defmacro clean-string
+  [word]
+  `(when ~word
+     (-> ~word string/trim strip-quotes)))
+
+
 (defn- strip-quotes
   "Remove the single and doble quotes from the input string."
   [word]
   (string/replace (string/replace word "'" "") "\"" ""))
+
 
 (defn- error-msg
   "Display the msgs and on stderr one by line."
@@ -47,8 +61,10 @@
         (let [host (get cfg-section "host")
               port (get cfg-section "port")]
           (if (and host port)
-            {:host (->> host string/trim strip-quotes)
-             :port (Integer/parseInt port)}
+            {:host (clean-string host)
+             :port (Integer/parseInt port)
+             :user (clean-string (get cfg-section "user"))
+             :passwd (clean-string (get cfg-section "passwd"))}
             (error-msg "Missing required variables in config file 'host'/'port'.")))))
     (catch FileNotFoundException e (error-msg e))))
 
@@ -60,8 +76,13 @@
            (if-let [config  (get-in opts [:options :config])]
              (options-from-config config)
              (:options opts))]
-    (run-jetty  web/app {:port  (:port options)
-                         :host (:host options)})
+    (let [user (:user options)
+          passwd (:passwd options)
+          app (if (and user passwd)
+                (wrap-basic-authentication web/app (authenticated? user passwd))
+                web/app)]
+      (run-jetty  app {:port (:port options)
+                       :host (:host options)}))
     (System/exit 1)))
 
 

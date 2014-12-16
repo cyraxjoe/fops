@@ -1,4 +1,4 @@
-(defproject fops "0.1.0-SNAPSHOT"
+(defproject fops "0.1.3-SNAPSHOT"
   :description "Apache FOP Server"
   :url "http://github.com/cyraxjoe/fops"
   :license {:name "Apache Public License 2.0"
@@ -10,8 +10,7 @@
                  [hiccup "1.0.5"]
                  [org.clojure/tools.cli "0.3.1"]
                  [com.brainbot/iniconfig "0.2.0"]
-;;                 [ring-basic-authentication "1.0.5"]
-                 ]
+                 [ring-basic-authentication "1.0.5"]]
   :plugins [[lein-ring "0.8.7"]]
   :ring {:handler fops.web/app}
   :main ^:skip-aot fops.core
