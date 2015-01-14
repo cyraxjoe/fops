@@ -1,5 +1,6 @@
 (ns fops.document
-  (:use clojure.java.io)
+  (:require [clojure.java.io :as io]
+            [fops.utils :as utils])
   (:import
    (java.io.File)
    (org.apache.fop.apps FopFactory Fop MimeConstants)
@@ -16,7 +17,8 @@
               :ps MimeConstants/MIME_POSTSCRIPT
               :txt MimeConstants/MIME_PLAIN_TEXT})
 
-(defn transform-fo [fo-input-stream doc-output-stream mime]
+(defn transform-fo
+  [fo-input-stream doc-output-stream mime]
   (let [fop (.newFop fopFactory mime doc-output-stream)
         factory (TransformerFactory/newInstance)
         transformer (.newTransformer factory)
@@ -25,21 +27,24 @@
     (.transform transformer src res)
     true))
 
-(defn stream-doc [in-fop-stream ext]
+(defn get-document
+  "Return the path of the generated document."
+  [in-fop-stream ext]
   (if-let [mime ((keyword ext) FORMATS)]
     (let [temp-file (java.io.File/createTempFile "doc" (format ".%s" ext))]
-      (with-open [out-file (output-stream temp-file)]
+      (with-open [out-file (io/output-stream temp-file)]
         (transform-fo in-fop-stream out-file mime)
-        (input-stream temp-file)))))
+        (str temp-file)))))
 
-(defn write-doc [in-fop-filepath out-filepath ext]
+(defn write-doc
+  "Write the document from an input file in xml-fo to the output file."
+  [in-fop-filepath out-filepath ext]
   (if-let [mime ((keyword ext) FORMATS)]
-    (with-open [src-fop (input-stream in-fop-filepath)
-                out-doc (output-stream out-filepath)]
-      (transform-fo src-fop out-doc mime))))
+      (with-open [src-fop (io/input-stream in-fop-filepath)
+                  out-doc (io/output-stream out-filepath)]
+        (transform-fo src-fop out-doc mime))))
 
-(defn write-pdf [in-fop-filepath out-filepath]
+(defn write-pdf
+  "Write a pdf from the input xml-fo"
+  [in-fop-filepath out-filepath]
   (write-doc in-fop-filepath out-filepath "pdf"))
-
-(defn stream-pdf [in-fop-stream]
-  (stream-doc in-fop-stream  "pdf"))

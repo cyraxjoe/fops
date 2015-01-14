@@ -1,21 +1,30 @@
 (ns fops.web
-  (:require [fops.document :as document]
+  (:require [clojure.java.io :as io]
+            [fops.document :as document]
             [fops.web.page :as page]
-            [ring.util.response :as response])
-  (:use clojure.pprint))
+            [fops.utils :as utils]
+            [ring.util.io :as ring-io]
+            [ring.util.response :as rsp]
+            [ring.middleware.params :refer [wrap-params]]))
 
-
-(defn index [request]
+(defn- index
+  [request]
   {:status 200
    :headers {"Content-Type" "text/html"}
    :body page/index})
 
-(defn gen-doc [request ext mime]
-  {:status 200
-   :headers {"Content-Type" mime}
-   :body (document/stream-doc (:body request) ext)})
+(defn- gen-doc
+  [document ext mime]
+  (let [doc-path (document/get-document
+                  (ring-io/string-input-stream document)
+                  ext)]
+    (utils/delete-in-future doc-path)
+    (-> doc-path
+        rsp/file-response
+        (rsp/content-type mime))))
 
-(defn app [request]
+(defn- main-handler
+  [request]
   (let [uri (:uri request)
         method (:request-method request)]
     (condp = method
@@ -23,5 +32,14 @@
       :post (let [ext (clojure.string/replace uri "/" "")
                   mime ((keyword ext) document/FORMATS)]
               (if mime
-                (gen-doc request ext mime)
-                (response/not-found (format "Unsupported format %s" ext)))))))
+                (if-let [document (get-in request [:form-params "document"])]
+                  (gen-doc document ext mime)
+                  (rsp/status
+                   (rsp/response "Missing required parameter 'document'.")
+                   400))
+                (rsp/not-found (format "Unsupported format %s" ext)))))))
+
+(defn app
+    [request]
+    (let [gateway (wrap-params main-handler)]
+      (gateway request)))

@@ -3,7 +3,8 @@
   (:require [hiccup.page]
             [fops.document :as document]))
 
-(defmacro -base [& content]
+(defmacro -base
+  [& content]
   `(hiccup.page/html5
     (html [:head [:title "Apache FOP Server - FOPS"]]
           [:body ~@content])))
